@@ -294,6 +294,13 @@ parameter_types! {
 	pub const StakingAdminBodyId: BodyId = BodyId::Defense;
 }
 
+parameter_types! {
+	// Max bytes allowed for student's name
+	pub const MaxNameLen: u32 = 10;
+	// Max bytes allowed for student's surname
+	pub const MaxSurnameLen: u32 = 20;
+}
+
 /// We allow root and the StakingAdmin to execute privileged collator selection operations.
 pub type CollatorSelectionUpdateOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
@@ -320,4 +327,8 @@ impl pallet_collator_selection::Config for Runtime {
 impl pallet_parachain_template::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_parachain_template::weights::SubstrateWeight<Runtime>;
+
+	// New associated types required by the pallet's Config trait
+	type MaxNameLen = MaxNameLen;
+	type MaxSurnameLen = MaxSurnameLen;
 }

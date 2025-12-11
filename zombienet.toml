@@ -1,21 +1,34 @@
 [relaychain]
 default_command = "polkadot"
 chain = "rococo-local"
+hrmp_channels = [
+    [1000, 2000],
+]
 
-[[relaychain.nodes]]
-name = "alice"
-validator = true
-ws_port = 9944
+    [[relaychain.nodes]]
+    name = "alice"
+    validator = true
+    rpc_port = 9944
 
-[[relaychain.nodes]]
-name = "bob"
-validator = true
-ws_port = 9955
+    [[relaychain.nodes]]
+    name = "bob"
+    validator = true
+    rpc_port = 9955
 
+# Parachain A
 [[parachains]]
 id = 1000
 
-[parachains.collator]
-name = "charlie"
-ws_port = 9988
-command = "parachain-template-node"
+    [parachains.collator]
+    name = "charlie-1000"
+    rpc_port = 9988
+    command = "./target/release/parachain-template-node"
+
+# Parachain B
+[[parachains]]
+id = 2000
+
+    [parachains.collator]
+    name = "dave-2000"
+    rpc_port = 9999
+    command = "./target/release/parachain-template-node"
