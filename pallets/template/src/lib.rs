@@ -103,24 +103,31 @@ pub mod pallet {
 	}
 
 
+	#[derive(
+    Encode, Decode, DecodeWithMemTracking, MaxEncodedLen, TypeInfo,
+    Clone, PartialEq, Eq, Debug, Default,
+	)]
+	pub enum Gender {
+		#[default]
+		Male,
+		Female,
+		Other,
+	}
+
+
 	// Defining Student structure
 	#[derive(
 		Encode, Decode, MaxEncodedLen, TypeInfo,
-		CloneNoBound, PartialEqNoBound, DefaultNoBound,
+		CloneNoBound, PartialEqNoBound, DebugNoBound, Default,
 	)]
 	#[scale_info(skip_type_params(T))]
 	pub struct Student<T: Config> {
 		pub name: BoundedVec<u8, T::MaxNameLen>,
 		pub surname: BoundedVec<u8, T::MaxSurnameLen>,
 		pub age: u32,
-		pub gender: u32,
+		pub gender: Gender,
 		pub has_graduated: bool,
 	}
-
-
-
-
-
 
 
 	/// The pallet's storage items.
@@ -143,7 +150,6 @@ pub mod pallet {
 		BoundedVec<u32, ConstU32<100>>, // max 100 students per account
 		ValueQuery,
 	>;
-
 
 
 	#[pallet::event]
@@ -189,7 +195,7 @@ pub mod pallet {
 			name: Vec<u8>,
 			surname: Vec<u8>,
 			age: u32,
-			gender: u32,
+			gender: Gender,
 			has_graduated: bool,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
