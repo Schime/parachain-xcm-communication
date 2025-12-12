@@ -36,11 +36,11 @@ pub mod pallet {
 		type MaxSurnameLen: Get<u32>;
 	}
 
+
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
-	/// A struct to store a single block-number. Has all the right derives to store it in storage.
-	/// <https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/reference_docs/frame_storage_derives/index.html>
+	
 	#[derive(
 		Encode, Decode, MaxEncodedLen, TypeInfo, CloneNoBound, PartialEqNoBound, DefaultNoBound,
 	)]
@@ -78,7 +78,7 @@ pub mod pallet {
 	}
 
 
-	/// Stores a Student for each account.
+	/// Stores a Student for each account
 	#[pallet::storage]
 	pub type StudentCount<T> = StorageValue<_, u32, ValueQuery>;
 
@@ -106,6 +106,7 @@ pub mod pallet {
 	}
 
 
+	#[pallet::error]
 	pub enum Error<T> {
 		NoneValue,
 		StorageOverflow,
