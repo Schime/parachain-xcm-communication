@@ -56,6 +56,8 @@ use sp_runtime::Perbill;
 use sp_version::RuntimeVersion;
 use xcm::latest::prelude::BodyId;
 
+use crate::configs::xcm_config::XcmRouter;
+
 // Local module imports
 use super::{
 	weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
@@ -331,4 +333,8 @@ impl pallet_parachain_template::Config for Runtime {
 	// New associated types required by the pallet's Config trait
 	type MaxNameLen = MaxNameLen;
 	type MaxSurnameLen = MaxSurnameLen;
+
+	type XcmSender = XcmRouter;
+
+	type RuntimeCall = RuntimeCall;
 }

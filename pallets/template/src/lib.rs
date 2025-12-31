@@ -18,8 +18,12 @@ mod benchmarking;
 pub mod pallet {
 	use frame::prelude::*;
 	use scale_info::prelude::vec::Vec;
+	use polkadot_sdk::{staging_xcm as xcm, staging_xcm_builder as xcm_builder};
+	use polkadot_sdk::staging_xcm::latest::{prelude::*, SendXcm,};
+	use scale_info::prelude::vec;
+	use codec::Encode;
 
-	/// Configure the pallet by specifying the parameters and types on which it depends.
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -34,6 +38,10 @@ pub mod pallet {
 		/// Maximum bytes allowed for surname
 		#[pallet::constant]
 		type MaxSurnameLen: Get<u32>;
+
+		type XcmSender: SendXcm;
+
+		type RuntimeCall: From<Call<Self>> + Encode;
 	}
 
 
@@ -65,7 +73,7 @@ pub mod pallet {
 
 	// Defining Student structure
 	#[derive(
-		Encode, Decode, MaxEncodedLen, TypeInfo,
+		Encode, Decode, MaxEncodedLen,  DecodeWithMemTracking, TypeInfo,
 		CloneNoBound, PartialEqNoBound, DebugNoBound, Default,
 	)]
 	#[scale_info(skip_type_params(T))]
@@ -103,6 +111,10 @@ pub mod pallet {
 
 		StudentCreated { who: T::AccountId },
 		StudentDeleted { who: T::AccountId, student_id: u32 },
+
+		XcmMessageSent { destination: Location },
+		StudentReceived { student_id: u32 },
+		StudentTransferred { student_id: u32, destination: Location },
 	}
 
 
@@ -117,6 +129,7 @@ pub mod pallet {
 		StudentNotFound,
 		NotStudentOwner,
 		AlreadyGraduated,
+		XcmSendFailed,
 	}
 
 	
@@ -234,6 +247,79 @@ pub mod pallet {
 
 			// Emit event
 			Self::deposit_event(Event::StudentDeleted { who, student_id });
+
+			Ok(())
+		}
+
+
+		// TRANSFER STUDENT
+		#[pallet::call_index(4)]
+		#[pallet::weight(10_000)]
+		pub fn transfer_student_xcm(
+			origin: OriginFor<T>,
+			student_id: u32,
+			dest_para_id: u32,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			// Ownership check
+			ensure!(
+				StudentsByOwner::<T>::get(&who).contains(&student_id),
+				Error::<T>::NotStudentOwner
+			);
+
+			let student = Students::<T>::get(student_id)
+				.ok_or(Error::<T>::StudentNotFound)?;
+
+			let destination = Location::new(1, [Parachain(dest_para_id)]);
+
+			  let call = <T as Config>::RuntimeCall::from(
+				Call::<T>::receive_student { student }
+			).encode();
+
+			let message = Xcm(vec![
+				UnpaidExecution {
+					weight_limit: WeightLimit::Unlimited,
+					check_origin: None,
+				},
+				Transact {
+					origin_kind: OriginKind::SovereignAccount, // important
+					fallback_max_weight: Some(Weight::from_parts(1_000_000_000, 0)),
+					call: call.into(),
+				},
+			]);
+
+			polkadot_sdk::staging_xcm::latest::send_xcm::<T::XcmSender>(
+				destination.clone(),
+				message,
+			)
+			.map_err(|_| Error::<T>::XcmSendFailed)?;
+
+			Self::deposit_event(Event::StudentTransferred { 
+				student_id, 
+				destination 
+			});
+
+			Ok(())
+		}
+
+
+		// RECEIVE STUDENT (is not called by user)
+		#[pallet::call_index(10)]
+		#[pallet::weight(10_000)]
+		pub fn receive_student(
+			origin: OriginFor<T>,
+			student: Student<T>,
+		) -> DispatchResult {
+			// Ensure this comes from XCM, not a signed user
+			let _ = origin;
+
+			let student_id = StudentCount::<T>::get();
+			StudentCount::<T>::put(student_id + 1);
+
+			Students::<T>::insert(student_id, student);
+
+			Self::deposit_event(Event::StudentReceived { student_id });
 
 			Ok(())
 		}

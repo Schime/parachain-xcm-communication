@@ -101,6 +101,15 @@ impl Contains<Location> for ParentOrParentsExecutivePlurality {
 	}
 }
 
+/// Allow sibling parachains to execute unpaid
+pub struct AllowSiblingParachains;
+impl Contains<Location> for AllowSiblingParachains {
+	fn contains(location: &Location) -> bool {
+		matches!(location.unpack(), (1, [Parachain(_)]))
+	}
+}
+
+
 pub type Barrier = TrailingSetTopicAsId<
 	DenyThenTry<
 		DenyRecursively<DenyReserveTransferToRelayChain>,
@@ -110,6 +119,7 @@ pub type Barrier = TrailingSetTopicAsId<
 				(
 					AllowTopLevelPaidExecutionFrom<Everything>,
 					AllowExplicitUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
+					AllowExplicitUnpaidExecutionFrom<AllowSiblingParachains>,
 					// ^^^ Parent and its exec plurality get free execution
 				),
 				UniversalLocation,
@@ -118,6 +128,20 @@ pub type Barrier = TrailingSetTopicAsId<
 		),
 	>,
 >;
+
+pub struct SafeCallFilter;
+impl Contains<RuntimeCall> for SafeCallFilter {
+	fn contains(call: &RuntimeCall) -> bool {
+		match call {
+			// Allow template pallet calls from XCM
+			RuntimeCall::TemplatePallet(_) => true,
+			// You can add other allowed calls here
+			_ => false,
+		}
+	}
+}
+
+
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -146,7 +170,7 @@ impl xcm_executor::Config for XcmConfig {
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
-	type SafeCallFilter = Everything;
+	type SafeCallFilter = SafeCallFilter;
 	type Aliasers = Nothing;
 	type TransactionalProcessor = FrameTransactionalProcessor;
 	type HrmpNewChannelOpenRequestHandler = ();
@@ -173,7 +197,7 @@ impl pallet_xcm::Config for Runtime {
 	type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
 	type XcmRouter = XcmRouter;
 	type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
-	type XcmExecuteFilter = Nothing;
+	type XcmExecuteFilter = Everything;
 	// ^ Disable dispatchable execute on the XCM pallet.
 	// Needs to be `Everything` for local testing.
 	type XcmExecutor = XcmExecutor<XcmConfig>;
