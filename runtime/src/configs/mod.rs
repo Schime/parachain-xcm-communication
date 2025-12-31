@@ -301,6 +301,9 @@ parameter_types! {
 	pub const MaxNameLen: u32 = 10;
 	// Max bytes allowed for student's surname
 	pub const MaxSurnameLen: u32 = 20;
+
+	// Destination parachain for graduated students
+	pub const GraduationDestinationPara: u32 = 2000;
 }
 
 /// We allow root and the StakingAdmin to execute privileged collator selection operations.
@@ -337,4 +340,6 @@ impl pallet_parachain_template::Config for Runtime {
 	type XcmSender = XcmRouter;
 
 	type RuntimeCall = RuntimeCall;
+
+	type GraduationDestinationPara = GraduationDestinationPara;
 }
