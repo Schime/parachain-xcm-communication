@@ -306,8 +306,8 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			student: Student<T>,
 		) -> DispatchResult {
-			// Ensure this comes from XCM, not a signed user
-			let _ = origin;
+			// Ensure SovereignAccount from XCM
+			ensure_signed_or_root(origin)?;
 
 			let student_id = StudentCount::<T>::get();
 			StudentCount::<T>::put(student_id + 1);
