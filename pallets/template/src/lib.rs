@@ -14,11 +14,10 @@ pub mod weights;
 mod benchmarking;
 
 
-#[frame::pallet]
+#[frame::pallet(dev_mode)]
 pub mod pallet {
 	use frame::prelude::*;
 	use scale_info::prelude::vec::Vec;
-	use polkadot_sdk::{staging_xcm as xcm, staging_xcm_builder as xcm_builder};
 	use polkadot_sdk::staging_xcm::latest::{prelude::*, SendXcm,};
 	use scale_info::prelude::vec;
 	use codec::Encode;
