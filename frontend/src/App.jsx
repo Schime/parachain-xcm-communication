@@ -335,36 +335,36 @@ const XCMStudentVisualizer = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-[2vw] sm:p-[3vw]">
+      <div className="w-full mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+        <div className="text-center mb-[3vw]">
+          <h1 className="text-[clamp(1.5rem,4vw,3rem)] font-bold text-gray-800 mb-[1vw]">
             XCM Student Transfer Visualizer
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-[clamp(0.875rem,1.5vw,1rem)] mb-[1vw]">
             University Parachain (1000) ⟷ Company Parachain (2000)
           </p>
-          <div className="mt-2 inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm">
-            <CheckCircle className="w-4 h-4" />
+          <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-[1.5vw] py-[0.75vw] rounded-full text-[clamp(0.75rem,1.2vw,0.875rem)]">
+            <CheckCircle className="w-[1.2vw] h-[1.2vw] min-w-[16px] min-h-[16px]" />
             Connected | Pallet: {palletName} | Alice
           </div>
         </div>
 
         {/* Create Student Form */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <User className="w-5 h-5" />
+        <div className="bg-white rounded-lg shadow-lg p-[2vw] mb-[3vw]">
+          <h2 className="text-[clamp(1.125rem,2vw,1.5rem)] font-bold text-gray-800 mb-[1.5vw] flex items-center gap-2">
+            <User className="w-[2vw] h-[2vw] min-w-[20px] min-h-[20px]" />
             Create New Student
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-[1vw]">
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleInputChange}
               placeholder="Name"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="px-[1.5vw] py-[1vw] border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-[clamp(0.875rem,1.2vw,1rem)]"
             />
             <input
               type="text"
@@ -372,7 +372,7 @@ const XCMStudentVisualizer = () => {
               value={formData.surname}
               onChange={handleInputChange}
               placeholder="Surname"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="px-[1.5vw] py-[1vw] border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-[clamp(0.875rem,1.2vw,1rem)]"
             />
             <input
               type="number"
@@ -382,13 +382,13 @@ const XCMStudentVisualizer = () => {
               placeholder="Age"
               min="18"
               max="100"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="px-[1.5vw] py-[1vw] border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-[clamp(0.875rem,1.2vw,1rem)]"
             />
             <select
               name="gender"
               value={formData.gender}
               onChange={handleInputChange}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="px-[1.5vw] py-[1vw] border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-[clamp(0.875rem,1.2vw,1rem)]"
             >
               <option value="Male">Male</option>
               <option value="Female">Female</option>
@@ -397,11 +397,11 @@ const XCMStudentVisualizer = () => {
             <button
               onClick={createStudent}
               disabled={creating}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-[2vw] py-[1vw] rounded-lg font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-[clamp(0.875rem,1.2vw,1rem)] md:col-span-2 xl:col-span-1"
             >
               {creating ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-[1.5vw] h-[1.5vw] min-w-[16px] min-h-[16px] animate-spin" />
                   Adding...
                 </>
               ) : (
@@ -412,59 +412,59 @@ const XCMStudentVisualizer = () => {
         </div>
 
         {/* Parachains Display */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-[2vw] mb-[4vw]">
           {/* University Parachain */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <GraduationCap className="w-8 h-8 text-blue-600" />
+          <div className="bg-white rounded-lg shadow-lg p-[2vw]">
+            <div className="flex items-center gap-[1vw] mb-[2vw]">
+              <GraduationCap className="w-[3vw] h-[3vw] min-w-[32px] min-h-[32px] text-blue-600" />
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">University Parachain</h2>
-                <p className="text-sm text-gray-500">Para ID: 1000 | Port: 9988</p>
+                <h2 className="text-[clamp(1.25rem,2.5vw,2rem)] font-bold text-gray-800">University Parachain</h2>
+                <p className="text-[clamp(0.75rem,1vw,0.875rem)] text-gray-500">Para ID: 1000 | Port: 9988</p>
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-[1vw]">
               {universityStudents.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <User className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No students yet. Create one above!</p>
+                <div className="text-center py-[5vw] text-gray-400">
+                  <User className="w-[5vw] h-[5vw] min-w-[48px] min-h-[48px] mx-auto mb-[1vw] opacity-50" />
+                  <p className="text-[clamp(0.875rem,1.2vw,1rem)]">No students yet. Create one above!</p>
                 </div>
               ) : (
                 universityStudents.map((student) => (
                   <div
                     key={student.id}
-                    className={`border border-gray-200 rounded-lg p-4 transition-all ${
+                    className={`border border-gray-200 rounded-lg p-[1.5vw] transition-all ${
                       transferring === student.id
                         ? 'animate-pulse bg-yellow-50 border-yellow-300'
                         : 'hover:shadow-md'
                     }`}
                   >
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex justify-between items-start mb-[1vw]">
                       <div>
-                        <h3 className="font-bold text-gray-800">
+                        <h3 className="font-bold text-gray-800 text-[clamp(1rem,1.5vw,1.25rem)]">
                           {student.name} {student.surname}
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-[clamp(0.75rem,1vw,0.875rem)] text-gray-600">
                           Age: {student.age} | {student.gender}
                         </p>
                       </div>
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      <span className="text-[clamp(0.75rem,1vw,0.875rem)] bg-blue-100 text-blue-800 px-[1vw] py-[0.5vw] rounded whitespace-nowrap">
                         ID: {student.id}
                       </span>
                     </div>
                     <button
                       onClick={() => graduateStudent(student.id)}
                       disabled={transferring !== null}
-                      className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full mt-[1vw] bg-green-600 hover:bg-green-700 text-white px-[1.5vw] py-[1vw] rounded-lg font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-[clamp(0.875rem,1.2vw,1rem)]"
                     >
                       {transferring === student.id ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-[1.5vw] h-[1.5vw] min-w-[16px] min-h-[16px] animate-spin" />
                           Graduating & Transferring...
                         </>
                       ) : (
                         <>
-                          <GraduationCap className="w-4 h-4" />
+                          <GraduationCap className="w-[1.5vw] h-[1.5vw] min-w-[16px] min-h-[16px]" />
                           Graduate Student
                         </>
                       )}
@@ -476,38 +476,38 @@ const XCMStudentVisualizer = () => {
           </div>
 
           {/* Company Parachain */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Building2 className="w-8 h-8 text-purple-600" />
+          <div className="bg-white rounded-lg shadow-lg p-[2vw]">
+            <div className="flex items-center gap-[1vw] mb-[2vw]">
+              <Building2 className="w-[3vw] h-[3vw] min-w-[32px] min-h-[32px] text-purple-600" />
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">Company Parachain</h2>
-                <p className="text-sm text-gray-500">Para ID: 2000 | Port: 9999</p>
+                <h2 className="text-[clamp(1.25rem,2.5vw,2rem)] font-bold text-gray-800">Company Parachain</h2>
+                <p className="text-[clamp(0.75rem,1vw,0.875rem)] text-gray-500">Para ID: 2000 | Port: 9999</p>
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-[1vw]">
               {companyStudents.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No graduated students yet</p>
+                <div className="text-center py-[5vw] text-gray-400">
+                  <Building2 className="w-[5vw] h-[5vw] min-w-[48px] min-h-[48px] mx-auto mb-[1vw] opacity-50" />
+                  <p className="text-[clamp(0.875rem,1.2vw,1rem)]">No graduated students yet</p>
                 </div>
               ) : (
                 companyStudents.map((student) => (
                   <div
                     key={student.id}
-                    className="border border-gray-200 rounded-lg p-4 bg-green-50 border-green-200"
+                    className="border border-gray-200 rounded-lg p-[1.5vw] bg-green-50 border-green-200"
                   >
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex justify-between items-start mb-[0.5vw]">
                       <div>
-                        <h3 className="font-bold text-gray-800">
+                        <h3 className="font-bold text-gray-800 text-[clamp(1rem,1.5vw,1.25rem)]">
                           {student.name} {student.surname}
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-[clamp(0.75rem,1vw,0.875rem)] text-gray-600">
                           Age: {student.age} | {student.gender}
                         </p>
                       </div>
-                      <span className="text-xs bg-green-600 text-white px-2 py-1 rounded flex items-center gap-1">
-                        <GraduationCap className="w-3 h-3" />
+                      <span className="text-[clamp(0.75rem,1vw,0.875rem)] bg-green-600 text-white px-[1vw] py-[0.5vw] rounded flex items-center gap-1 whitespace-nowrap">
+                        <GraduationCap className="w-[1.2vw] h-[1.2vw] min-w-[12px] min-h-[12px]" />
                         Graduated
                       </span>
                     </div>
@@ -522,23 +522,23 @@ const XCMStudentVisualizer = () => {
         {transferring !== null && (
           <div className="fixed inset-0 pointer-events-none flex items-center justify-center">
             <div className="animate-ping">
-              <ArrowRight className="w-16 h-16 text-green-600" />
+              <ArrowRight className="w-[5vw] h-[5vw] min-w-[64px] min-h-[64px] text-green-600" />
             </div>
           </div>
         )}
 
         {/* Info Footer */}
-        <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
-          <h3 className="font-bold text-gray-800 mb-3">How it works:</h3>
-          <ol className="list-decimal list-inside space-y-2 text-gray-600">
+        <div className="bg-white rounded-lg shadow-lg p-[2vw]">
+          <h3 className="font-bold text-gray-800 mb-[1.5vw] text-[clamp(1.125rem,2vw,1.5rem)]">How it works:</h3>
+          <ol className="list-decimal list-inside space-y-[0.75vw] text-gray-600 text-[clamp(0.875rem,1.2vw,1rem)]">
             <li>Create students on University Parachain using the form above</li>
             <li>Students are stored on-chain in the {palletName} pallet</li>
             <li>Click "Graduate Student" to trigger the XCM transfer</li>
             <li>Student data is sent via XCM from Para 1000 → Para 2000</li>
             <li>Graduated student appears on Company Parachain automatically</li>
           </ol>
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
+          <div className="mt-[1.5vw] p-[1.5vw] bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-[clamp(0.75rem,1vw,0.875rem)] text-blue-800">
               <strong>✅ Live Connection:</strong> Connected to your zombienet nodes. 
               Transactions signed with Alice. Check browser console for detailed logs.
             </p>
