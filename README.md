@@ -1,29 +1,28 @@
 <div align="center">
 
 # XCM Student Transfer  
-### Cross-Parachain Communication Demo on Polkadot
+### Cross-Parachain Communication Demo (Polkadot Local Network)
 
 <img height="70px" alt="Polkadot SDK Logo" src="https://github.com/paritytech/polkadot-sdk/raw/master/docs/images/Polkadot_Logo_Horizontal_Pink_White.png#gh-dark-mode-only"/>
 <img height="70px" alt="Polkadot SDK Logo" src="https://github.com/paritytech/polkadot-sdk/raw/master/docs/images/Polkadot_Logo_Horizontal_Pink_Black.png#gh-light-mode-only"/>
 
 **University Parachain (1000)** → **Company Parachain (2000)**  
-Local Polkadot network powered by **XCM** and **Zombienet**
+Powered by **XCM**, **HRMP**, **Zombienet**, and **Polkadot SDK**
 
 </div>
 
 ---
 
-## 🚀 Overview
+## 🎯 Project Focus
 
-This project demonstrates **XCM (Cross-Consensus Messaging)** between two parachains running on a **local Polkadot network**.
+This repository demonstrates **XCM (Cross-Consensus Messaging)** between two **sibling parachains** running on a **local Polkadot network**.
 
-A student is created on the **University parachain (ParaId 1000)** and, upon graduation, is transferred to the **Company parachain (ParaId 2000)** using an **XCM `Transact` message** over an **HRMP channel**.
+- Students are created on **Parachain 1000 (University)**
+- Graduating a student triggers an **XCM `Transact`**
+- Student data is executed and stored on **Parachain 2000 (Company)**
+- State changes are visualized via a **React + Vite frontend**
 
-The project focuses on:
-- XCM configuration and message flow
-- HRMP-based parachain communication
-- Executing remote calls on sibling parachains
-- Observing cross-chain state changes via a React UI
+The goal of the project is to showcase **real, executable cross-parachain calls**, not UI complexity or node setup.
 
 ---
 
@@ -35,27 +34,27 @@ Relay Chain (9944)
 ├─ Parachain 1000 (University) ──▶ HRMP ──▶ Parachain 2000 (Company)
 │        9988                                  9999
 │
-└─ React Frontend (5173)
+└─ React + Vite Frontend (5173)
 ```
 
 ---
 
-## 🌐 Network & Ports
+## 🌐 Ports & Access
 
-| Component            | Port |
-|---------------------|------|
-| Relay Chain          | 9944 |
-| Parachain 1000       | 9988 |
-| Parachain 2000       | 9999 |
-| Frontend (React UI)  | 5173 |
+| Component            | Address / Port |
+|---------------------|----------------|
+| Relay Chain          | ws://127.0.0.1:9944 |
+| Parachain 1000       | ws://127.0.0.1:9988 |
+| Parachain 2000       | ws://127.0.0.1:9999 |
+| Frontend UI          | http://localhost:5173 |
 
 ⚠️ **Port `5173` must be open** to access the UI.
 
 ---
 
-## 🧪 Local Network
+## 🧪 Local Network (Zombienet)
 
-The local Polkadot network is started using **Zombienet**:
+The network is started using **Zombienet**:
 
 ```bash
 zombienet --provider native spawn zombienet.toml
@@ -66,44 +65,29 @@ https://paritytech.github.io/zombienet/
 
 ---
 
-## 🔁 HRMP Channel Setup
+## 🔁 HRMP Channel (Required for XCM)
 
-An **HRMP channel (1000 → 2000)** is required for XCM.
+An **HRMP channel (1000 → 2000)** must be opened on the relay chain.
 
-Use the provided script:
+Run the script **while Zombienet is starting** (after a few seconds):
 
 ```bash
 ./setup-channels.sh
 ```
 
-### Script (reference)
-
-```bash
-#!/bin/bash
-
-echo "⏳ Waiting for relay chain to be ready..."
-sleep 15
-
-echo "📡 Opening HRMP channel 1000 -> 2000..."
-
-if ! command -v polkadot-js-api &> /dev/null; then
-    echo "Installing @polkadot/api-cli..."
-fi
-
-polkadot-js-api   --ws ws://127.0.0.1:9944   --sudo   --seed "//Alice"   tx.hrmp.forceOpenHrmpChannel 1000 2000 1 102400
-
-echo "✅ HRMP channel opened!"
-```
+This script uses `sudo` on the relay chain (Alice) to open the channel via `hrmp.forceOpenHrmpChannel`.
 
 ---
 
 ## 🖥️ Frontend
 
-The frontend is a **React + Vite** application that:
-- Connects to both parachains
-- Creates students on Para 1000
-- Graduates students via XCM
-- Displays students on Para 2000
+The frontend is built with:
+
+- **React 18**
+- **Vite**
+- **Tailwind CSS**
+- **polkadot.js API**
+- **lucide-react** icons
 
 ### Run frontend
 
@@ -113,37 +97,66 @@ npm install
 npm run dev
 ```
 
-UI will be available at:  
+UI available at:  
 👉 http://localhost:5173
+
+The UI connects directly to:
+- Parachain 1000 (`9988`)
+- Parachain 2000 (`9999`)
+
+and signs transactions using the **Alice dev account**.
+
+---
+
+## 🔍 Inspecting On‑Chain State
+
+For detailed on-chain inspection, use **Polkadot.js Apps**:
+
+- Relay Chain:  
+  https://polkadot.js.org/apps/?rpc=ws://127.0.0.1:9944
+
+- University Parachain (1000):  
+  https://polkadot.js.org/apps/?rpc=ws://127.0.0.1:9988
+
+- Company Parachain (2000):  
+  https://polkadot.js.org/apps/?rpc=ws://127.0.0.1:9999
+
+Useful sections:
+- **Developer → Extrinsics**
+- **Developer → Chain state**
+- **Network → Explorer**
+- **XCM / HRMP events on relay chain**
+
+---
+
+## ✉️ XCM Flow (High Level)
+
+1. User clicks **Graduate Student** in UI
+2. `graduateStudent` extrinsic executes on Para 1000
+3. Student data is encoded into an XCM `Transact`
+4. XCM message routed via Relay Chain
+5. Para 2000 executes `receiveStudent`
+6. Student appears on Company parachain
+
+Security is enforced via:
+- XCM **Barriers**
+- **SafeCallFilter**
+- Sibling parachain origin checks
 
 ---
 
 ## 🔧 Development Notes
 
-### Rebuilding Node / Runtime / Pallets
+### Rebuilding Runtime / Pallets / Node
 
-Whenever **binary-related code** changes (runtime, pallets, node):
+Whenever **binary code changes** (runtime, pallets, node):
 
 ```bash
 cargo build --release
 cargo install --path node
 ```
 
-Restart Zombienet after rebuilding.
-
----
-
-## ✉️ XCM Summary
-
-- HRMP channel connects Para 1000 → Para 2000
-- `graduate_student` extrinsic builds an XCM message
-- XCM uses:
-  - `UnpaidExecution`
-  - `Transact`
-- Remote call executes `receive_student` on Para 2000
-- XCM security enforced via:
-  - Barriers
-  - Safe call filtering
+Zombienet must be restarted after rebuilding.
 
 ---
 
@@ -151,13 +164,13 @@ Restart Zombienet after rebuilding.
 
 ```
 .
-├── node/                   # Parachain node
-├── runtime/                # Runtime + XCM config
-├── pallets/                # Student pallet
-├── frontend/               # React UI (Vite)
-├── zombienet.toml          # Local network config
+├── node/                    # Parachain node
+├── runtime/                 # Runtime + XCM config
+├── pallets/                 # Student pallet
+├── frontend/                # React + Vite UI
+├── zombienet.toml
 ├── zombienet-omni-node.toml
-├── setup-channels.sh       # HRMP setup script
+├── setup-channels.sh        # HRMP setup script
 ├── dev_chain_spec.json
 ├── Cargo.toml
 ├── Cargo.lock
@@ -166,30 +179,29 @@ Restart Zombienet after rebuilding.
 
 ---
 
-## 📚 References
+## 🧬 Origin
 
-- Polkadot SDK  
-  https://paritytech.github.io/polkadot-sdk/
+This project is based on the official:
 
-- XCM Overview  
-  https://wiki.polkadot.network/docs/learn-xcm
+**polkadot-sdk-parachain-template**  
+https://github.com/paritytech/polkadot-sdk-parachain-template
 
-- Zombienet  
-  https://paritytech.github.io/zombienet/
-
-- Polkadot.js API  
-  https://polkadot.js.org/docs/
+and extended with:
+- Custom student pallet
+- XCM configuration
+- HRMP messaging
+- Frontend visualization
 
 ---
 
 ## 📜 License
 
-This project is released under the **Unlicense** (public domain).
+Unlicensed / Public Domain.
 
 ---
 
 <div align="center">
 
-Built with ❤️ using Polkadot SDK & XCM
+Built with ❤️ using Polkadot SDK, XCM & Zombienet
 
 </div>
