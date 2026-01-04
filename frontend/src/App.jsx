@@ -343,7 +343,7 @@ const XCMStudentVisualizer = () => {
             XCM Student Transfer Visualizer
           </h1>
           <p className="text-gray-600 text-[clamp(0.875rem,1.5vw,1rem)] mb-[1vw]">
-            University Parachain (1000) ⟷ Company Parachain (2000)
+            University Parachain (1000) → Company Parachain (2000)
           </p>
           <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-[1.5vw] py-[0.75vw] rounded-full text-[clamp(0.75rem,1.2vw,0.875rem)]">
             <CheckCircle className="w-[1.2vw] h-[1.2vw] min-w-[16px] min-h-[16px]" />
