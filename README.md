@@ -1,265 +1,697 @@
 <div align="center">
 
-# Polkadot SDK's Parachain Template
+# XCM Student Transfer: Cross-Parachain Communication Demo
 
 <img height="70px" alt="Polkadot SDK Logo" src="https://github.com/paritytech/polkadot-sdk/raw/master/docs/images/Polkadot_Logo_Horizontal_Pink_White.png#gh-dark-mode-only"/>
 <img height="70px" alt="Polkadot SDK Logo" src="https://github.com/paritytech/polkadot-sdk/raw/master/docs/images/Polkadot_Logo_Horizontal_Pink_Black.png#gh-light-mode-only"/>
 
-> This is a template for creating a [parachain](https://wiki.polkadot.network/docs/learn-parachains) based on Polkadot SDK.
+> A demonstration of XCM (Cross-Consensus Messaging) for transferring student data between parachains on a local Polkadot network.
 >
-> This template is automatically updated after releases in the main [Polkadot SDK monorepo](https://github.com/paritytech/polkadot-sdk).
+> **University Parachain (1000)** → **Company Parachain (2000)**
 
 </div>
 
-## Table of Contents
+---
 
-- [Intro](#intro)
+## 📚 Table of Contents
 
-- [Template Structure](#template-structure)
+- [Project Overview](#-project-overview)
+- [Architecture](#-architecture)
+- [Prerequisites](#-prerequisites)
+- [Installation](#-installation)
+- [Running the Project](#-running-the-project)
+- [Using the Frontend UI](#-using-the-frontend-ui)
+- [How XCM Works in This Project](#-how-xcm-works-in-this-project)
+- [Development Workflow](#-development-workflow)
+- [Troubleshooting](#-troubleshooting)
+- [Project Structure](#-project-structure)
 
-- [Getting Started](#getting-started)
+---
 
-- [Starting a Development Chain](#starting-a-development-chain)
+## 🎯 Project Overview
 
-  - [Omni Node](#omni-node-prerequisites)
-  - [Zombienet setup with Omni Node](#zombienet-setup-with-omni-node)
-  - [Parachain Template Node](#parachain-template-node)
-  - [Connect with the Polkadot-JS Apps Front-End](#connect-with-the-polkadot-js-apps-front-end)
-  - [Takeaways](#takeaways)
+This project demonstrates **Cross-Consensus Messaging (XCM)** between two parachains in a local Polkadot development environment:
 
-- [Runtime development](#runtime-development)
-- [Contributing](#contributing)
-- [Getting Help](#getting-help)
+- **University Parachain (Para ID: 1000)**: Students are created and managed here
+- **Company Parachain (Para ID: 2000)**: Graduated students are transferred here via XCM
 
-## Intro
+**Key Features:**
+- ✅ Create students with personal information (name, surname, age, gender)
+- ✅ Graduate students, triggering automatic XCM transfer to Company Parachain
+- ✅ Real-time visualization of cross-chain data transfer
+- ✅ Interactive React frontend with live blockchain connection
 
-- ⏫ This template provides a starting point to build a [parachain](https://wiki.polkadot.network/docs/learn-parachains).
+---
 
-- ☁️ It is based on the
-  [Cumulus](https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/polkadot_sdk/cumulus/index.html) framework.
+## 🏗️ Architecture
 
-- 🔧 Its runtime is configured with a single custom pallet as a starting point, and a handful of ready-made pallets
-  such as a [Balances pallet](https://paritytech.github.io/polkadot-sdk/master/pallet_balances/index.html).
-
-- 👉 Learn more about parachains [here](https://wiki.polkadot.network/docs/learn-parachains)
-
-## Template Structure
-
-A Polkadot SDK based project such as this one consists of:
-
-- 🧮 the [Runtime](./runtime/README.md) - the core logic of the parachain.
-- 🎨 the [Pallets](./pallets/README.md) - from which the runtime is constructed.
-- 💿 a [Node](./node/README.md) - the binary application, not part of the project default-members list and not compiled unless
-  building the project with `--workspace` flag, which builds all workspace members, and is an alternative to
-  [Omni Node](https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/reference_docs/omni_node/index.html).
-
-## Getting Started
-
-- 🦀 The template is using the Rust language.
-
-- 👉 Check the
-  [Rust installation instructions](https://www.rust-lang.org/tools/install) for your system.
-
-- 🛠️ Depending on your operating system and Rust version, there might be additional
-  packages required to compile this template - please take note of the Rust compiler output.
-
-Fetch parachain template code:
-
-```sh
-git clone https://github.com/paritytech/polkadot-sdk-parachain-template.git parachain-template
-
-cd parachain-template
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Relay Chain (Rococo Local)               │
+│                                                              │
+│  ┌──────────────────┐          ┌──────────────────┐         │
+│  │   Alice (9944)   │          │    Bob (9955)    │         │
+│  │    Validator     │          │    Validator     │         │
+│  └──────────────────┘          └──────────────────┘         │
+│                                                              │
+│        ┌──────────────────────────────────────┐             │
+│        │       HRMP Channel (1000 → 2000)     │             │
+│        └──────────────────────────────────────┘             │
+└─────────────────────────────────────────────────────────────┘
+           │                              │
+           │                              │
+    ┌──────▼──────────┐          ┌───────▼─────────┐
+    │  University     │   XCM    │    Company      │
+    │  Parachain      │ ────────►│   Parachain     │
+    │  (1000:9988)    │          │   (2000:9999)   │
+    └─────────────────┘          └─────────────────┘
+           │                              │
+           └──────────────┬───────────────┘
+                          │
+                   ┌──────▼──────┐
+                   │   Frontend  │
+                   │   (5173)    │
+                   └─────────────┘
 ```
 
-## Starting a Development Chain
+---
 
-The parachain template relies on a hardcoded parachain id which is defined in the runtime code
-and referenced throughout the contents of this file as `{{PARACHAIN_ID}}`. Please replace
-any command or file referencing this placeholder with the value of the `PARACHAIN_ID` constant:
+## 📋 Prerequisites
 
-```rust,ignore
-pub const PARACHAIN_ID: u32 = 1000;
-```
-
-### Omni Node Prerequisites
-
-[Omni Node](https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/reference_docs/omni_node/index.html) can
-be used to run the parachain template's runtime. `polkadot-omni-node` binary crate usage is described at a high-level
-[on crates.io](https://crates.io/crates/polkadot-omni-node).
-
-#### Install `polkadot-omni-node`
-
-Please see the installation section at [`crates.io/omni-node`](https://crates.io/crates/polkadot-omni-node).
-
-#### Build `parachain-template-runtime`
-
-```sh
-cargo build --profile production
-```
-
-#### Install `staging-chain-spec-builder`
-
-Please see the installation section at [`crates.io/staging-chain-spec-builder`](https://crates.io/crates/staging-chain-spec-builder).
-
-#### Use `chain-spec-builder` to generate the `chain_spec.json` file
-
-```sh
-chain-spec-builder create --relay-chain "rococo-local" --para-id {{PARACHAIN_ID}} --runtime \
-    target/release/wbuild/parachain-template-runtime/parachain_template_runtime.wasm named-preset development
-```
-
-**Note**: the `relay-chain` and `para-id` flags are mandatory information required by
-Omni Node, and for parachain template case the value for `para-id` must be set to `{{PARACHAIN_ID}}`, since this
-is also the value injected through [ParachainInfo](https://docs.rs/staging-parachain-info/0.17.0/staging_parachain_info/)
-pallet into the `parachain-template-runtime`'s storage. The `relay-chain` value is set in accordance
-with the relay chain ID where this instantiation of parachain-template will connect to.
-
-#### Run Omni Node
-
-Start Omni Node with the generated chain spec. We'll start it in development mode (without a relay chain config), producing
-and finalizing blocks based on manual seal, configured below to seal a block with each second.
+### 1. Install Rust
 
 ```bash
-polkadot-omni-node --chain <path/to/chain_spec.json> --dev --dev-block-time 1000
+# Install Rust using rustup
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Configure current shell
+source $HOME/.cargo/env
+
+# Add WebAssembly target
+rustup target add wasm32-unknown-unknown
+
+# Verify installation
+rustc --version
+cargo --version
 ```
 
-However, such a setup is not close to what would run in production, and for that we need to setup a local
-relay chain network that will help with the block finalization. In this guide we'll setup a local relay chain
-as well. We'll not do it manually, by starting one node at a time, but we'll use [zombienet](https://paritytech.github.io/zombienet/intro.html).
+### 2. Install System Dependencies
 
-Follow through the next section for more details on how to do it.
-
-### Zombienet setup with Omni Node
-
-Assuming we continue from the last step of the previous section, we have a chain spec and we need to setup a relay chain.
-We can install `zombienet` as described [here](https://paritytech.github.io/zombienet/install.html#installation), and
-`zombienet-omni-node.toml` contains the network specification we want to start.
-
-#### Relay chain prerequisites
-
-Download the `polkadot` (and the accompanying `polkadot-prepare-worker` and `polkadot-execute-worker`) binaries from
-[Polkadot SDK releases](https://github.com/paritytech/polkadot-sdk/releases). Then expose them on `PATH` like so:
-
-```sh
-export PATH="$PATH:<path/to/binaries>"
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install -y build-essential git clang curl libssl-dev llvm libudev-dev protobuf-compiler pkg-config
 ```
 
-#### Update `zombienet-omni-node.toml` with a valid chain spec path
-
-To simplify the process of using the parachain-template with zombienet and Omni Node, we've added a pre-configured
-development chain spec (dev_chain_spec.json) to the parachain template. The zombienet-omni-node.toml file of this
-template points to it, but you can update it to an updated chain spec generated on your machine. To generate a
-chain spec refer to [staging-chain-spec-builder](https://crates.io/crates/staging-chain-spec-builder)
-
-Then make the changes in the network specification like so:
-
-```toml
-# ...
-[[parachains]]
-id = "<PARACHAIN_ID>"
-chain_spec_path = "<TO BE UPDATED WITH A VALID PATH>"
-# ...
+**macOS:**
+```bash
+brew install openssl cmake llvm protobuf
 ```
 
-#### Start the network
+### 3. Install Polkadot Binary
 
-```sh
-zombienet --provider native spawn zombienet-omni-node.toml
+Download the latest Polkadot release:
+```bash
+# Create a binaries directory
+mkdir -p ~/polkadot-bins
+cd ~/polkadot-bins
+
+# Download Polkadot (replace version with latest)
+wget https://github.com/paritytech/polkadot-sdk/releases/download/polkadot-stable2412-2/polkadot
+wget https://github.com/paritytech/polkadot-sdk/releases/download/polkadot-stable2412-2/polkadot-execute-worker
+wget https://github.com/paritytech/polkadot-sdk/releases/download/polkadot-stable2412-2/polkadot-prepare-worker
+
+# Make executable
+chmod +x polkadot polkadot-execute-worker polkadot-prepare-worker
+
+# Add to PATH (add to ~/.bashrc or ~/.zshrc for persistence)
+export PATH="$HOME/polkadot-bins:$PATH"
+
+# Verify
+polkadot --version
 ```
 
-### Parachain Template Node
+### 4. Install Zombienet
 
-As mentioned in the `Template Structure` section, the `node` crate is optionally compiled and it is an alternative
-to `Omni Node`. Similarly, it requires setting up a relay chain, and we'll use `zombienet` once more.
+```bash
+# Download Zombienet
+wget https://github.com/paritytech/zombienet/releases/latest/download/zombienet-linux-x64 -O ~/polkadot-bins/zombienet
+# For macOS: zombienet-macos
 
-#### Install the `parachain-template-node`
+# Make executable
+chmod +x ~/polkadot-bins/zombienet
 
-```sh
+# Verify
+zombienet --version
+```
+
+### 5. Install Node.js & npm
+
+```bash
+# Install Node.js (v18 or higher recommended)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Or using nvm (recommended)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc
+nvm install 18
+nvm use 18
+
+# Verify
+node --version
+npm --version
+```
+
+### 6. Install Polkadot.js API CLI
+
+```bash
+npm install -g @polkadot/api-cli
+```
+
+---
+
+## 🚀 Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone <your-repo-url>
+cd parachain-xcm-communication
+```
+
+### 2. Build the Parachain Node
+
+```bash
+# Build in release mode (this will take some time on first build)
+cargo build --release
+
+# Install the node binary (required for zombienet)
+cargo install --path node
+
+# Verify the binary is available
+parachain-template-node --version
+```
+
+**⚠️ Important:** Whenever you modify the runtime or node code, you must rebuild and reinstall:
+```bash
+cargo build --release
 cargo install --path node
 ```
 
-#### Setup and start the network
+### 3. Setup Frontend
 
-For setup, please consider the instructions for `zombienet` installation [here](https://paritytech.github.io/zombienet/install.html#installation)
-and [relay chain prerequisites](#relay-chain-prerequisites).
+```bash
+cd frontend
 
-We're left just with starting the network:
+# Install dependencies
+npm install
 
-```sh
+# Install additional dependencies
+npm install @polkadot/api @polkadot/keyring @polkadot/util @polkadot/util-crypto lucide-react
+
+# Install Tailwind CSS v4
+npm install tailwindcss @tailwindcss/postcss
+
+# Verify installation
+npm list
+```
+
+---
+
+## 🎮 Running the Project
+
+### Step 1: Start the Local Network with Zombienet
+
+```bash
+# From project root, start the relay chain + parachains
 zombienet --provider native spawn zombienet.toml
 ```
 
-### Connect with the Polkadot-JS Apps Front-End
+**What this does:**
+- Starts 2 relay chain validators (Alice on port 9944, Bob on port 9955)
+- Starts University Parachain collator (Para 1000 on port 9988)
+- Starts Company Parachain collator (Para 2000 on port 9999)
+- Establishes basic parachain registration
 
-- 🌐 You can interact with your local node using the
-  hosted version of the Polkadot/Substrate Portal:
-  [relay chain](https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9944)
-  and [parachain](https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9988).
-
-- 🪐 A hosted version is also
-  available on [IPFS](https://dotapps.io/).
-
-- 🧑‍🔧 You can also find the source code and instructions for hosting your own instance in the
-  [`polkadot-js/apps`](https://github.com/polkadot-js/apps) repository.
-
-### Takeaways
-
-Development parachains:
-
-- 🔗 Connect to relay chains, and we showcased how to connect to a local one.
-- 🧹 Do not persist the state.
-- 💰 Are preconfigured with a genesis state that includes several prefunded development accounts.
-- 🧑‍⚖️ Development accounts are used as validators, collators, and `sudo` accounts.
-
-## Runtime development
-
-We recommend using [`chopsticks`](https://github.com/AcalaNetwork/chopsticks) when the focus is more on the runtime
-development and `OmniNode` is enough as is.
-
-### Install chopsticks
-
-To use `chopsticks`, please install the latest version according to the installation [guide](https://github.com/AcalaNetwork/chopsticks?tab=readme-ov-file#install).
-
-### Build a raw chain spec
-
-Build the `parachain-template-runtime` as mentioned before in this guide and use `chain-spec-builder`
-again but this time by passing `--raw-storage` flag:
-
-```sh
-chain-spec-builder create --raw-storage --relay-chain "rococo-local" --para-id {{PARACHAIN_ID}} --runtime \
-    target/release/wbuild/parachain-template-runtime/parachain_template_runtime.wasm named-preset development
+You should see output like:
+```
+Network launched 🚀🚀
 ```
 
-### Start `chopsticks` with the chain spec
+**Keep this terminal open!**
 
-```sh
-npx @acala-network/chopsticks@latest --chain-spec <path/to/chain_spec.json>
+### Step 2: Open HRMP Channel (Required for XCM)
+
+The HRMP (Horizontal Relay-routed Message Passing) channel enables communication between parachains.
+
+**Option A: Using the Automated Script**
+
+Create `setup-hrmp-channel.sh`:
+
+```bash
+#!/bin/bash
+
+echo "⏳ Waiting for relay chain to be ready..."
+sleep 15
+
+echo "📡 Opening HRMP channel 1000 → 2000..."
+
+polkadot-js-api \
+  --ws ws://127.0.0.1:9944 \
+  --sudo \
+  --seed "//Alice" \
+  tx.hrmp.forceOpenHrmpChannel 1000 2000 1 102400
+
+echo "✅ HRMP channel opened!"
 ```
 
-### Alternatives
+Make it executable and run:
+```bash
+chmod +x setup-hrmp-channel.sh
+./setup-hrmp-channel.sh
+```
 
-`OmniNode` can be still used for runtime development if using the `--dev` flag, while `parachain-template-node` doesn't
-support it at this moment. It can still be used to test a runtime in a full setup where it is started alongside a
-relay chain network (see [Parachain Template node](#parachain-template-node) setup).
+**Option B: Using Polkadot.js Apps UI (Manual)**
 
-## Contributing
+1. Navigate to https://polkadot.js.org/apps/?rpc=ws://127.0.0.1:9944
+2. Go to **Developer** → **Sudo**
+3. Select `hrmp.forceOpenHrmpChannel(id, recipient, maxCapacity, maxMessageSize)`
+4. Enter parameters:
+   - `id`: `1000`
+   - `recipient`: `2000`
+   - `maxCapacity`: `1`
+   - `maxMessageSize`: `102400`
+5. Click **Submit Sudo**
+6. Sign with Alice
 
-- 🔄 This template is automatically updated after releases in the main [Polkadot SDK monorepo](https://github.com/paritytech/polkadot-sdk).
+**Verify Channel:**
+```bash
+polkadot-js-api --ws ws://127.0.0.1:9944 query.hrmp.hrmpChannels 1000 2000
+```
 
-- ➡️ Any pull requests should be directed to this [source](https://github.com/paritytech/polkadot-sdk/tree/master/templates/parachain).
+You should see channel details (not null).
 
-- 😇 Please refer to the monorepo's
-  [contribution guidelines](https://github.com/paritytech/polkadot-sdk/blob/master/docs/contributor/CONTRIBUTING.md) and
-  [Code of Conduct](https://github.com/paritytech/polkadot-sdk/blob/master/docs/contributor/CODE_OF_CONDUCT.md).
+### Step 3: Start the Frontend
 
-## Getting Help
+Open a new terminal:
 
-- 🧑‍🏫 To learn about Polkadot in general, [docs.Polkadot.com](https://docs.polkadot.com/) website is a good starting point.
+```bash
+cd frontend
 
-- 🧑‍🔧 For technical introduction, [here](https://github.com/paritytech/polkadot-sdk#-documentation) are
-  the Polkadot SDK documentation resources.
+# Start the development server
+npm run dev
+```
 
-- 👥 Additionally, there are [GitHub issues](https://github.com/paritytech/polkadot-sdk/issues) and
-  [Substrate StackExchange](https://substrate.stackexchange.com/).
-- 👥You can also reach out on the [Official Polkdot discord server](https://polkadot-discord.w3f.tools/)
-- 🧑Reach out on [Telegram](https://t.me/substratedevs) for more questions and discussions
+You should see:
+```
+VITE v5.0.8  ready in 500 ms
+
+➜  Local:   http://localhost:5173/
+```
+
+### Step 4: Open the UI
+
+Navigate to **http://localhost:5173** in your browser.
+
+You should see:
+- ✅ Connection status: "Connected | Pallet: templatePallet | Alice"
+- University Parachain panel (left)
+- Company Parachain panel (right)
+
+---
+
+## 🖥️ Using the Frontend UI
+
+### Creating a Student
+
+1. Fill in the form at the top:
+   - **Name**: e.g., "John"
+   - **Surname**: e.g., "Doe"
+   - **Age**: e.g., "22"
+   - **Gender**: Select from dropdown (Male/Female/Other)
+
+2. Click **"Add Student"**
+
+3. Wait for confirmation (~6 seconds for block finalization)
+
+4. Student appears in the University Parachain panel
+
+### Graduating a Student (XCM Transfer)
+
+1. Find the student in the University Parachain panel
+
+2. Click **"Graduate Student"**
+
+3. Watch the transfer animation (arrow icon)
+
+4. After ~9 seconds (includes 3-second XCM processing delay):
+   - Student disappears from University Parachain
+   - Student appears in Company Parachain with "Graduated" badge
+
+### Browser Console
+
+Open browser DevTools (F12) to see detailed logs:
+- Connection status
+- Detected pallet name
+- Transaction hashes
+- XCM events
+- Student data
+
+---
+
+## 🔧 How XCM Works in This Project
+
+### Custom Pallet: `pallet_parachain_template`
+
+Located in `pallets/template/src/lib.rs`
+
+**Extrinsic Functions:**
+
+1. **`create_student`**: Creates a student on University Parachain
+   ```rust
+   pub fn create_student(
+       origin: OriginFor<T>,
+       name: Vec<u8>,
+       surname: Vec<u8>,
+       age: u32,
+       gender: Gender,
+   ) -> DispatchResult
+   ```
+
+2. **`graduate_student`**: Graduates and transfers student via XCM
+   ```rust
+   pub fn graduate_student(
+       origin: OriginFor<T>,
+       student_id: u32,
+   ) -> DispatchResult
+   ```
+   
+   **This function:**
+   - Validates student ownership
+   - Marks student as graduated
+   - Encodes `receive_student` call
+   - Builds XCM message with `Transact` instruction
+   - Sends XCM to Para 2000
+   - Removes student from Para 1000
+
+3. **`receive_student`**: Receives student on Company Parachain (called by XCM)
+   ```rust
+   pub fn receive_student(
+       origin: OriginFor<T>,
+       student: Student<T>,
+   ) -> DispatchResult
+   ```
+
+### XCM Configuration Changes
+
+**Key files modified:**
+
+#### 1. `runtime/src/configs/xcm_config.rs`
+
+**Added Safe Call Filter:**
+```rust
+pub struct SafeCallFilter;
+impl Contains<RuntimeCall> for SafeCallFilter {
+    fn contains(call: &RuntimeCall) -> bool {
+        match call {
+            RuntimeCall::TemplatePallet(_) => true, // Allow our pallet
+            _ => false,
+        }
+    }
+}
+```
+
+**Added Sibling Parachain Unpaid Execution:**
+```rust
+pub struct AllowSiblingParachains;
+impl Contains<Location> for AllowSiblingParachains {
+    fn contains(location: &Location) -> bool {
+        matches!(location.unpack(), (1, [Parachain(_)]))
+    }
+}
+```
+
+**Updated Barrier:**
+```rust
+pub type Barrier = TrailingSetTopicAsId<
+    DenyThenTry<
+        DenyRecursively<DenyReserveTransferToRelayChain>,
+        (
+            TakeWeightCredit,
+            WithComputedOrigin<
+                (
+                    AllowTopLevelPaidExecutionFrom<Everything>,
+                    AllowExplicitUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
+                    AllowExplicitUnpaidExecutionFrom<AllowSiblingParachains>, // Added
+                ),
+                UniversalLocation,
+                ConstU32<8>,
+            >,
+        ),
+    >,
+>;
+```
+
+#### 2. `runtime/src/configs/mod.rs`
+
+**Configured Destination Parachain:**
+```rust
+parameter_types! {
+    pub const GraduationDestinationPara: u32 = 2000; // Company Parachain
+}
+```
+
+### XCM Message Flow
+
+```
+1. User clicks "Graduate Student" on Frontend
+   ↓
+2. Frontend calls graduate_student extrinsic on Para 1000
+   ↓
+3. Para 1000 builds XCM message:
+   Xcm(vec![
+       UnpaidExecution { weight_limit: Unlimited, check_origin: None },
+       Transact {
+           origin_kind: SovereignAccount,
+           call: encoded_receive_student_call,
+       }
+   ])
+   ↓
+4. XCM sent to Relay Chain → routed to Para 2000
+   ↓
+5. Para 2000 receives XCM, passes Barrier checks
+   ↓
+6. SafeCallFilter allows TemplatePallet call
+   ↓
+7. receive_student executed on Para 2000
+   ↓
+8. Student stored on Para 2000
+   ↓
+9. Frontend polls both chains, updates UI
+```
+
+---
+
+## 🛠️ Development Workflow
+
+### Making Changes to Runtime
+
+1. Edit your code in `runtime/` or `pallets/`
+
+2. Rebuild:
+   ```bash
+   cargo build --release
+   ```
+
+3. **Reinstall the node binary** (critical!):
+   ```bash
+   cargo install --path node
+   ```
+
+4. Restart zombienet:
+   ```bash
+   # Stop current zombienet (Ctrl+C)
+   zombienet --provider native spawn zombienet.toml
+   ```
+
+5. Re-open HRMP channel (if needed)
+
+### Making Changes to Frontend
+
+1. Edit files in `frontend/src/`
+
+2. Vite will auto-reload
+
+3. For dependency changes:
+   ```bash
+   npm install
+   ```
+
+### Testing XCM Locally
+
+1. Check relay chain events:
+   ```bash
+   polkadot-js-api --ws ws://127.0.0.1:9944 query.system.events
+   ```
+
+2. Check parachain events:
+   ```bash
+   # University Parachain
+   polkadot-js-api --ws ws://127.0.0.1:9988 query.system.events
+   
+   # Company Parachain
+   polkadot-js-api --ws ws://127.0.0.1:9999 query.system.events
+   ```
+
+3. Query student data:
+   ```bash
+   # Check student count
+   polkadot-js-api --ws ws://127.0.0.1:9988 query.templatePallet.studentCount
+   
+   # Check specific student
+   polkadot-js-api --ws ws://127.0.0.1:9988 query.templatePallet.students 0
+   ```
+
+---
+
+## 🐛 Troubleshooting
+
+### Issue: "Failed to connect"
+
+**Solution:**
+- Ensure zombienet is running
+- Wait 15-20 seconds after starting zombienet
+- Check if ports 9988 and 9999 are not in use:
+  ```bash
+  lsof -i :9988
+  lsof -i :9999
+  ```
+
+### Issue: "Could not find student pallet"
+
+**Solution:**
+- Check browser console for "Available pallets"
+- Pallet should be named `templatePallet`
+- Verify in `runtime/src/lib.rs`:
+  ```rust
+  pub type TemplatePallet = pallet_parachain_template;
+  ```
+
+### Issue: Students not transferring
+
+**Solution:**
+1. Verify HRMP channel is open:
+   ```bash
+   polkadot-js-api --ws ws://127.0.0.1:9944 query.hrmp.hrmpChannels 1000 2000
+   ```
+
+2. Check XCM configuration in `xcm_config.rs`
+
+3. Look for XCM errors in relay chain events
+
+### Issue: "Transaction failed"
+
+**Solution:**
+- Open browser console for detailed error
+- Check if student exists and you own it
+- Verify student hasn't already graduated
+- Check Alice has funds on the parachain
+
+### Issue: Frontend CSS not loading
+
+**Solution:**
+```bash
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+npm install tailwindcss @tailwindcss/postcss
+npm run dev
+```
+
+### Issue: Binary not found after rebuild
+
+**Solution:**
+```bash
+cargo install --path node
+export PATH="$HOME/.cargo/bin:$PATH"
+```
+
+---
+
+## 📁 Project Structure
+
+```
+parachain-xcm-communication/
+├── node/                          # Parachain node implementation
+│   └── src/
+│       └── main.rs
+├── pallets/
+│   └── template/
+│       └── src/
+│           └── lib.rs            # Student pallet with XCM logic
+├── runtime/
+│   └── src/
+│       ├── lib.rs                # Runtime configuration
+│       └── configs/
+│           ├── mod.rs            # Pallet configurations
+│           └── xcm_config.rs     # XCM setup ⭐
+├── frontend/                      # React + Vite frontend
+│   ├── src/
+│   │   ├── App.jsx               # Main UI component
+│   │   ├── main.jsx
+│   │   └── index.css
+│   ├── package.json
+│   ├── postcss.config.js
+│   └── vite.config.js
+├── zombienet.toml                 # Network configuration
+├── setup-hrmp-channel.sh          # HRMP channel script
+├── Cargo.toml
+└── README.md
+```
+
+---
+
+## 🎓 Key Concepts Learned
+
+- ✅ **XCM**: Cross-chain messaging protocol
+- ✅ **HRMP**: Horizontal message passing between parachains
+- ✅ **Transact**: XCM instruction for executing calls on remote chains
+- ✅ **Barriers**: Security filters for incoming XCM messages
+- ✅ **SafeCallFilter**: Whitelist specific extrinsics for XCM
+- ✅ **Sovereign Account**: Parachain's account on other chains
+- ✅ **Polkadot.js API**: JavaScript library for blockchain interaction
+
+---
+
+## 📚 Additional Resources
+
+- [Polkadot SDK Documentation](https://paritytech.github.io/polkadot-sdk/master/polkadot_sdk_docs/index.html)
+- [XCM Format Documentation](https://wiki.polkadot.network/docs/learn-xcm)
+- [Zombienet Documentation](https://paritytech.github.io/zombienet/)
+- [Polkadot.js API Docs](https://polkadot.js.org/docs/)
+- [Substrate Documentation](https://docs.substrate.io/)
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly with zombienet
+5. Submit a pull request
+
+---
+
+## 📝 License
+
+This project is unlicensed and released into the public domain.
+
+---
+
+<div align="center">
+
+**Built with ❤️ using Polkadot SDK**
+
+</div>
