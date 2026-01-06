@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
-import { ArrowRight, User, GraduationCap, Building2, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowRight, User, GraduationCap, Building2, Loader2, AlertCircle, CheckCircle, Edit2, X, Save } from 'lucide-react';
 
 const XCMStudentVisualizer = () => {
-  // API instances for both parachains
   const [apis, setApis] = useState({ university: null, company: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,14 +12,10 @@ const XCMStudentVisualizer = () => {
     company: 'disconnected'
   });
 
-  // Student data
   const [universityStudents, setUniversityStudents] = useState([]);
   const [companyStudents, setCompanyStudents] = useState([]);
-
-  // Alice account (default dev account)
   const [alice, setAlice] = useState(null);
-
-  // Form state
+  
   const [formData, setFormData] = useState({
     name: '',
     surname: '',
@@ -29,25 +24,29 @@ const XCMStudentVisualizer = () => {
   });
   const [creating, setCreating] = useState(false);
   const [transferring, setTransferring] = useState(null);
-
-  // Pallet name detection
   const [palletName, setPalletName] = useState(null);
 
-  // Initialize connections and Alice account
+  // Edit state
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    surname: '',
+    age: '',
+    gender: 'Male'
+  });
+  const [updating, setUpdating] = useState(false);
+
   useEffect(() => {
     const initialize = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Initialize keyring and get Alice account
         const keyring = new Keyring({ type: 'sr25519' });
         const aliceAccount = keyring.addFromUri('//Alice');
         setAlice(aliceAccount);
-
         console.log('Alice address:', aliceAccount.address);
 
-        // Connect to University Parachain (1000) on port 9988
         console.log('Connecting to University Parachain...');
         setConnectionStatus(prev => ({ ...prev, university: 'connecting' }));
         const wsProviderUniversity = new WsProvider('ws://127.0.0.1:9988');
@@ -56,7 +55,6 @@ const XCMStudentVisualizer = () => {
         console.log('✅ Connected to University Parachain');
         setConnectionStatus(prev => ({ ...prev, university: 'connected' }));
 
-        // Connect to Company Parachain (2000) on port 9999
         console.log('Connecting to Company Parachain...');
         setConnectionStatus(prev => ({ ...prev, company: 'connecting' }));
         const wsProviderCompany = new WsProvider('ws://127.0.0.1:9999');
@@ -65,7 +63,6 @@ const XCMStudentVisualizer = () => {
         console.log('✅ Connected to Company Parachain');
         setConnectionStatus(prev => ({ ...prev, company: 'connected' }));
 
-        // Detect pallet name
         const detectedPalletName = detectPalletName(apiUniversity);
         if (!detectedPalletName) {
           throw new Error('Could not find student pallet. Available pallets: ' + 
@@ -75,10 +72,7 @@ const XCMStudentVisualizer = () => {
         console.log('✅ Detected pallet name:', detectedPalletName);
 
         setApis({ university: apiUniversity, company: apiCompany });
-
-        // Load initial student data
         await loadStudentsFromChains(apiUniversity, apiCompany, detectedPalletName);
-
         setLoading(false);
       } catch (err) {
         console.error('Connection error:', err);
@@ -89,17 +83,15 @@ const XCMStudentVisualizer = () => {
 
     initialize();
 
-    // Cleanup on unmount
     return () => {
       if (apis.university) apis.university.disconnect();
       if (apis.company) apis.company.disconnect();
     };
   }, []);
 
-  // Detect pallet name by checking common variations
   const detectPalletName = (api) => {
     const possibleNames = [
-      'templatePallet',      // Your actual pallet name
+      'templatePallet',
       'studentRegistry',
       'palletStudentRegistry', 
       'student',
@@ -113,17 +105,14 @@ const XCMStudentVisualizer = () => {
       }
     }
 
-    // If not found, log all available pallets
     console.log('Available pallets:', Object.keys(api.query));
     return null;
   };
 
-  // Load students from both chains
   const loadStudentsFromChains = async (uniApi, compApi, pallet) => {
     try {
       console.log('Loading students using pallet:', pallet);
       
-      // Load from University Parachain
       const uniCount = await uniApi.query[pallet].studentCount();
       console.log('University student count:', uniCount.toNumber());
       const uniStudentsList = [];
@@ -145,7 +134,6 @@ const XCMStudentVisualizer = () => {
       setUniversityStudents(uniStudentsList);
       console.log('University students:', uniStudentsList);
 
-      // Load from Company Parachain
       const compCount = await compApi.query[pallet].studentCount();
       console.log('Company student count:', compCount.toNumber());
       const compStudentsList = [];
@@ -172,13 +160,85 @@ const XCMStudentVisualizer = () => {
     }
   };
 
-  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Create student on University Parachain
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const startEditing = (student) => {
+    setEditingStudent(student.id);
+    setEditFormData({
+      name: student.name,
+      surname: student.surname,
+      age: student.age.toString(),
+      gender: student.gender
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingStudent(null);
+    setEditFormData({
+      name: '',
+      surname: '',
+      age: '',
+      gender: 'Male'
+    });
+  };
+
+  const updateStudent = async (studentId) => {
+    if (!editFormData.name || !editFormData.surname || !editFormData.age) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    if (!apis.university || !alice || !palletName) {
+      alert('Not connected to blockchain');
+      return;
+    }
+
+    setUpdating(true);
+
+    try {
+      const nameBytes = Array.from(new TextEncoder().encode(editFormData.name));
+      const surnameBytes = Array.from(new TextEncoder().encode(editFormData.surname));
+      const age = parseInt(editFormData.age);
+      const gender = editFormData.gender;
+
+      console.log('Updating student:', { studentId, nameBytes, surnameBytes, age, gender });
+
+      const unsub = await apis.university.tx[palletName]
+        .updateStudent(studentId, nameBytes, surnameBytes, age, gender)
+        .signAndSend(alice, ({ status, events }) => {
+          if (status.isInBlock) {
+            console.log(`Update included in block ${status.asInBlock}`);
+          } else if (status.isFinalized) {
+            console.log(`Update finalized at block ${status.asFinalized}`);
+            
+            events.forEach(({ event }) => {
+              if (apis.university.events.system.ExtrinsicFailed.is(event)) {
+                console.error('Transaction failed:', event.data.toString());
+              }
+            });
+
+            loadStudentsFromChains(apis.university, apis.company, palletName);
+            cancelEditing();
+            setUpdating(false);
+            unsub();
+          }
+        });
+
+    } catch (err) {
+      console.error('Error updating student:', err);
+      alert(`Failed to update student: ${err.message}`);
+      setUpdating(false);
+    }
+  };
+
   const createStudent = async () => {
     if (!formData.name || !formData.surname || !formData.age) {
       alert('Please fill in all fields');
@@ -193,16 +253,13 @@ const XCMStudentVisualizer = () => {
     setCreating(true);
 
     try {
-      // Convert strings to byte arrays
       const nameBytes = Array.from(new TextEncoder().encode(formData.name));
       const surnameBytes = Array.from(new TextEncoder().encode(formData.surname));
       const age = parseInt(formData.age);
       const gender = formData.gender;
 
       console.log('Creating student:', { nameBytes, surnameBytes, age, gender });
-      console.log('Using pallet:', palletName);
 
-      // Submit transaction
       const unsub = await apis.university.tx[palletName]
         .createStudent(nameBytes, surnameBytes, age, gender)
         .signAndSend(alice, ({ status, events }) => {
@@ -211,17 +268,13 @@ const XCMStudentVisualizer = () => {
           } else if (status.isFinalized) {
             console.log(`Transaction finalized at block ${status.asFinalized}`);
             
-            // Check for errors
             events.forEach(({ event }) => {
               if (apis.university.events.system.ExtrinsicFailed.is(event)) {
                 console.error('Transaction failed:', event.data.toString());
               }
             });
 
-            // Reload students after transaction is finalized
             loadStudentsFromChains(apis.university, apis.company, palletName);
-            
-            // Reset form
             setFormData({ name: '', surname: '', age: '', gender: 'Male' });
             setCreating(false);
             unsub();
@@ -235,7 +288,6 @@ const XCMStudentVisualizer = () => {
     }
   };
 
-  // Graduate student (triggers XCM transfer)
   const graduateStudent = async (studentId) => {
     if (!apis.university || !alice || !palletName) {
       alert('Not connected to blockchain');
@@ -247,7 +299,6 @@ const XCMStudentVisualizer = () => {
     try {
       console.log(`Graduating student ID ${studentId}...`);
 
-      // Submit graduation transaction
       const unsub = await apis.university.tx[palletName]
         .graduateStudent(studentId)
         .signAndSend(alice, async ({ status, events }) => {
@@ -256,7 +307,6 @@ const XCMStudentVisualizer = () => {
           } else if (status.isFinalized) {
             console.log(`Graduation finalized at block ${status.asFinalized}`);
             
-            // Check for events
             events.forEach(({ event }) => {
               console.log('Event:', event.section, event.method, event.data.toString());
               if (apis.university.events.system.ExtrinsicFailed.is(event)) {
@@ -264,12 +314,8 @@ const XCMStudentVisualizer = () => {
               }
             });
 
-            // Wait a bit for XCM to process
             await new Promise(resolve => setTimeout(resolve, 3000));
-
-            // Reload students from both chains
             await loadStudentsFromChains(apis.university, apis.company, palletName);
-            
             setTransferring(null);
             unsub();
           }
@@ -282,7 +328,43 @@ const XCMStudentVisualizer = () => {
     }
   };
 
-  // Loading state
+  const deleteStudent = async (studentId) => {
+    if (!apis.university || !alice || !palletName) {
+      alert('Not connected to blockchain');
+      return;
+    }
+
+    if (!window.confirm('Are you sure you want to delete this student?')) {
+      return;
+    }
+
+    try {
+      console.log(`Deleting student ID ${studentId}...`);
+
+      const unsub = await apis.university.tx[palletName]
+        .deleteStudent(studentId)
+        .signAndSend(alice, ({ status, events }) => {
+          if (status.isInBlock) {
+            console.log(`Delete included in block ${status.asInBlock}`);
+          } else if (status.isFinalized) {
+            console.log(`Delete finalized at block ${status.asFinalized}`);
+
+            events.forEach(({ event }) => {
+              if (apis.university.events.system.ExtrinsicFailed.is(event)) {
+                console.error('Delete failed:', event.data.toString());
+              }
+            });
+
+            loadStudentsFromChains(apis.university, apis.company, palletName);
+            unsub();
+          }
+        });
+    } catch (err) {
+      console.error('Error deleting student:', err);
+      alert(`Failed to delete student: ${err.message}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -312,7 +394,6 @@ const XCMStudentVisualizer = () => {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -335,36 +416,34 @@ const XCMStudentVisualizer = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-[2vw] sm:p-[3vw]">
-      <div className="w-full mx-auto">
-        {/* Header */}
-        <div className="text-center mb-[3vw]">
-          <h1 className="text-[clamp(1.5rem,4vw,3rem)] font-bold text-gray-800 mb-[1vw]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">
             XCM Student Transfer Visualizer
           </h1>
-          <p className="text-gray-600 text-[clamp(0.875rem,1.5vw,1rem)] mb-[1vw]">
+          <p className="text-gray-600 mb-4">
             University Parachain (1000) → Company Parachain (2000)
           </p>
-          <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-[1.5vw] py-[0.75vw] rounded-full text-[clamp(0.75rem,1.2vw,0.875rem)]">
-            <CheckCircle className="w-[1.2vw] h-[1.2vw] min-w-[16px] min-h-[16px]" />
+          <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm">
+            <CheckCircle className="w-4 h-4" />
             Connected | Pallet: {palletName} | Alice
           </div>
         </div>
 
-        {/* Create Student Form */}
-        <div className="bg-white rounded-lg shadow-lg p-[2vw] mb-[3vw]">
-          <h2 className="text-[clamp(1.125rem,2vw,1.5rem)] font-bold text-gray-800 mb-[1.5vw] flex items-center gap-2">
-            <User className="w-[2vw] h-[2vw] min-w-[20px] min-h-[20px]" />
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <User className="w-6 h-6" />
             Create New Student
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-[1vw]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleInputChange}
               placeholder="Name"
-              className="px-[1.5vw] py-[1vw] border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-[clamp(0.875rem,1.2vw,1rem)]"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
             <input
               type="text"
@@ -372,7 +451,7 @@ const XCMStudentVisualizer = () => {
               value={formData.surname}
               onChange={handleInputChange}
               placeholder="Surname"
-              className="px-[1.5vw] py-[1vw] border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-[clamp(0.875rem,1.2vw,1rem)]"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
             <input
               type="number"
@@ -382,13 +461,13 @@ const XCMStudentVisualizer = () => {
               placeholder="Age"
               min="18"
               max="100"
-              className="px-[1.5vw] py-[1vw] border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-[clamp(0.875rem,1.2vw,1rem)]"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
             <select
               name="gender"
               value={formData.gender}
               onChange={handleInputChange}
-              className="px-[1.5vw] py-[1vw] border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-[clamp(0.875rem,1.2vw,1rem)]"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="Male">Male</option>
               <option value="Female">Female</option>
@@ -397,11 +476,11 @@ const XCMStudentVisualizer = () => {
             <button
               onClick={createStudent}
               disabled={creating}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-[2vw] py-[1vw] rounded-lg font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-[clamp(0.875rem,1.2vw,1rem)] md:col-span-2 xl:col-span-1"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {creating ? (
                 <>
-                  <Loader2 className="w-[1.5vw] h-[1.5vw] min-w-[16px] min-h-[16px] animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Adding...
                 </>
               ) : (
@@ -411,103 +490,187 @@ const XCMStudentVisualizer = () => {
           </div>
         </div>
 
-        {/* Parachains Display */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-[2vw] mb-[4vw]">
-          {/* University Parachain */}
-          <div className="bg-white rounded-lg shadow-lg p-[2vw]">
-            <div className="flex items-center gap-[1vw] mb-[2vw]">
-              <GraduationCap className="w-[3vw] h-[3vw] min-w-[32px] min-h-[32px] text-blue-600" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <GraduationCap className="w-8 h-8 text-blue-600" />
               <div>
-                <h2 className="text-[clamp(1.25rem,2.5vw,2rem)] font-bold text-gray-800">University Parachain</h2>
-                <p className="text-[clamp(0.75rem,1vw,0.875rem)] text-gray-500">Para ID: 1000 | Port: 9988</p>
+                <h2 className="text-2xl font-bold text-gray-800">University Parachain</h2>
+                <p className="text-sm text-gray-500">Para ID: 1000 | Port: 9988</p>
               </div>
             </div>
 
-            <div className="space-y-[1vw]">
+            <div className="space-y-3">
               {universityStudents.length === 0 ? (
-                <div className="text-center py-[5vw] text-gray-400">
-                  <User className="w-[5vw] h-[5vw] min-w-[48px] min-h-[48px] mx-auto mb-[1vw] opacity-50" />
-                  <p className="text-[clamp(0.875rem,1.2vw,1rem)]">No students yet. Create one above!</p>
+                <div className="text-center py-12 text-gray-400">
+                  <User className="w-16 h-16 mx-auto mb-3 opacity-50" />
+                  <p>No students yet. Create one above!</p>
                 </div>
               ) : (
                 universityStudents.map((student) => (
                   <div
                     key={student.id}
-                    className={`border border-gray-200 rounded-lg p-[1.5vw] transition-all ${
+                    className={`border border-gray-200 rounded-lg p-4 transition-all ${
                       transferring === student.id
                         ? 'animate-pulse bg-yellow-50 border-yellow-300'
                         : 'hover:shadow-md'
                     }`}
                   >
-                    <div className="flex justify-between items-start mb-[1vw]">
-                      <div>
-                        <h3 className="font-bold text-gray-800 text-[clamp(1rem,1.5vw,1.25rem)]">
-                          {student.name} {student.surname}
-                        </h3>
-                        <p className="text-[clamp(0.75rem,1vw,0.875rem)] text-gray-600">
-                          Age: {student.age} | {student.gender}
-                        </p>
+                    {editingStudent === student.id ? (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="font-bold text-gray-800">Edit Student</h3>
+                          <button
+                            onClick={cancelEditing}
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          name="name"
+                          value={editFormData.name}
+                          onChange={handleEditInputChange}
+                          placeholder="Name"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                          type="text"
+                          name="surname"
+                          value={editFormData.surname}
+                          onChange={handleEditInputChange}
+                          placeholder="Surname"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                          type="number"
+                          name="age"
+                          value={editFormData.age}
+                          onChange={handleEditInputChange}
+                          placeholder="Age"
+                          min="18"
+                          max="100"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        <select
+                          name="gender"
+                          value={editFormData.gender}
+                          onChange={handleEditInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        <button
+                          onClick={() => updateStudent(student.id)}
+                          disabled={updating}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
+                        >
+                          {updating ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Updating...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-4 h-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </button>
                       </div>
-                      <span className="text-[clamp(0.75rem,1vw,0.875rem)] bg-blue-100 text-blue-800 px-[1vw] py-[0.5vw] rounded whitespace-nowrap">
-                        ID: {student.id}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => graduateStudent(student.id)}
-                      disabled={transferring !== null}
-                      className="w-full mt-[1vw] bg-green-600 hover:bg-green-700 text-white px-[1.5vw] py-[1vw] rounded-lg font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-[clamp(0.875rem,1.2vw,1rem)]"
-                    >
-                      {transferring === student.id ? (
-                        <>
-                          <Loader2 className="w-[1.5vw] h-[1.5vw] min-w-[16px] min-h-[16px] animate-spin" />
-                          Graduating & Transferring...
-                        </>
-                      ) : (
-                        <>
-                          <GraduationCap className="w-[1.5vw] h-[1.5vw] min-w-[16px] min-h-[16px]" />
-                          Graduate Student
-                        </>
-                      )}
-                    </button>
+                    ) : (
+                      <>
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-bold text-gray-800 text-lg">
+                              {student.name} {student.surname}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              Age: {student.age} | {student.gender}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              ID: {student.id}
+                            </span>
+                            <button
+                              onClick={() => startEditing(student)}
+                              disabled={transferring !== null}
+                              title="Edit student"
+                              className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteStudent(student.id)}
+                              disabled={transferring !== null}
+                              title="Delete student"
+                              className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => graduateStudent(student.id)}
+                          disabled={transferring !== null}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          {transferring === student.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Graduating & Transferring...
+                            </>
+                          ) : (
+                            <>
+                              <GraduationCap className="w-4 h-4" />
+                              Graduate Student
+                            </>
+                          )}
+                        </button>
+                      </>
+                    )}
                   </div>
                 ))
               )}
             </div>
           </div>
 
-          {/* Company Parachain */}
-          <div className="bg-white rounded-lg shadow-lg p-[2vw]">
-            <div className="flex items-center gap-[1vw] mb-[2vw]">
-              <Building2 className="w-[3vw] h-[3vw] min-w-[32px] min-h-[32px] text-purple-600" />
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Building2 className="w-8 h-8 text-purple-600" />
               <div>
-                <h2 className="text-[clamp(1.25rem,2.5vw,2rem)] font-bold text-gray-800">Company Parachain</h2>
-                <p className="text-[clamp(0.75rem,1vw,0.875rem)] text-gray-500">Para ID: 2000 | Port: 9999</p>
+                <h2 className="text-2xl font-bold text-gray-800">Company Parachain</h2>
+                <p className="text-sm text-gray-500">Para ID: 2000 | Port: 9999</p>
               </div>
             </div>
 
-            <div className="space-y-[1vw]">
+            <div className="space-y-3">
               {companyStudents.length === 0 ? (
-                <div className="text-center py-[5vw] text-gray-400">
-                  <Building2 className="w-[5vw] h-[5vw] min-w-[48px] min-h-[48px] mx-auto mb-[1vw] opacity-50" />
-                  <p className="text-[clamp(0.875rem,1.2vw,1rem)]">No graduated students yet</p>
+                <div className="text-center py-12 text-gray-400">
+                  <Building2 className="w-16 h-16 mx-auto mb-3 opacity-50" />
+                  <p>No graduated students yet</p>
                 </div>
               ) : (
                 companyStudents.map((student) => (
                   <div
                     key={student.id}
-                    className="border border-gray-200 rounded-lg p-[1.5vw] bg-green-50 border-green-200"
+                    className="border border-gray-200 rounded-lg p-4 bg-green-50 border-green-200"
                   >
-                    <div className="flex justify-between items-start mb-[0.5vw]">
+                    <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-bold text-gray-800 text-[clamp(1rem,1.5vw,1.25rem)]">
+                        <h3 className="font-bold text-gray-800 text-lg">
                           {student.name} {student.surname}
                         </h3>
-                        <p className="text-[clamp(0.75rem,1vw,0.875rem)] text-gray-600">
+                        <p className="text-sm text-gray-600">
                           Age: {student.age} | {student.gender}
                         </p>
                       </div>
-                      <span className="text-[clamp(0.75rem,1vw,0.875rem)] bg-green-600 text-white px-[1vw] py-[0.5vw] rounded flex items-center gap-1 whitespace-nowrap">
-                        <GraduationCap className="w-[1.2vw] h-[1.2vw] min-w-[12px] min-h-[12px]" />
+                      <span className="text-xs bg-green-600 text-white px-2 py-1 rounded flex items-center gap-1">
+                        <GraduationCap className="w-3 h-3" />
                         Graduated
                       </span>
                     </div>
@@ -518,27 +681,26 @@ const XCMStudentVisualizer = () => {
           </div>
         </div>
 
-        {/* Transfer Animation Overlay */}
         {transferring !== null && (
-          <div className="fixed inset-0 pointer-events-none flex items-center justify-center">
+          <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50">
             <div className="animate-ping">
-              <ArrowRight className="w-[5vw] h-[5vw] min-w-[64px] min-h-[64px] text-green-600" />
+              <ArrowRight className="w-16 h-16 text-green-600" />
             </div>
           </div>
         )}
 
-        {/* Info Footer */}
-        <div className="bg-white rounded-lg shadow-lg p-[2vw]">
-          <h3 className="font-bold text-gray-800 mb-[1.5vw] text-[clamp(1.125rem,2vw,1.5rem)]">How it works:</h3>
-          <ol className="list-decimal list-inside space-y-[0.75vw] text-gray-600 text-[clamp(0.875rem,1.2vw,1rem)]">
+        <div className="bg-white rounded-lg shadow-lg p-6 mt-6">
+          <h3 className="font-bold text-gray-800 mb-4 text-lg">How it works:</h3>
+          <ol className="list-decimal list-inside space-y-2 text-gray-600">
             <li>Create students on University Parachain using the form above</li>
+            <li>Edit student details by clicking the edit icon next to each student</li>
             <li>Students are stored on-chain in the {palletName} pallet</li>
             <li>Click "Graduate Student" to trigger the XCM transfer</li>
             <li>Student data is sent via XCM from Para 1000 → Para 2000</li>
             <li>Graduated student appears on Company Parachain automatically</li>
           </ol>
-          <div className="mt-[1.5vw] p-[1.5vw] bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-[clamp(0.75rem,1vw,0.875rem)] text-blue-800">
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
               <strong>✅ Live Connection:</strong> Connected to your zombienet nodes. 
               Transactions signed with Alice. Check browser console for detailed logs.
             </p>

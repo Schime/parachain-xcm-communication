@@ -118,6 +118,7 @@ pub mod pallet {
 		StudentReceived { student_id: u32 },
 		StudentTransferred { student_id: u32, destination: Location },
 		StudentGraduatedAndTransferred { who: T::AccountId, student_id: u32, destination: Location },
+		StudentUpdated { who: T::AccountId, student_id: u32 },
 	}
 
 
@@ -299,7 +300,7 @@ pub mod pallet {
 
 
 		// RECEIVE STUDENT (is not called by user)
-		#[pallet::call_index(3)]
+		#[pallet::call_index(5)]
 		#[pallet::weight(10_000)]
 		pub fn receive_student(
 			origin: OriginFor<T>,
@@ -314,6 +315,49 @@ pub mod pallet {
 			Students::<T>::insert(student_id, student);
 
 			Self::deposit_event(Event::StudentReceived { student_id });
+
+			Ok(())
+		}
+
+
+		// UPDATE STUDENT
+		#[pallet::call_index(4)] // Change receive_student to call_index(5)
+		#[pallet::weight(10_000)]
+		pub fn update_student(
+			origin: OriginFor<T>,
+			student_id: u32,
+			name: Vec<u8>,
+			surname: Vec<u8>,
+			age: u32,
+			gender: Gender,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			// Ensure the caller owns this student
+			let owned_ids = StudentsByOwner::<T>::get(&who);
+			ensure!(owned_ids.contains(&student_id), Error::<T>::NotStudentOwner);
+
+			// Get the student and ensure they exist
+			let mut student = Students::<T>::get(student_id)
+				.ok_or(Error::<T>::StudentNotFound)?;
+
+			// Convert name and surname to bounded vecs
+			let name: BoundedVec<_, T::MaxNameLen> =
+				name.try_into().map_err(|_| Error::<T>::NameTooLong)?;
+			let surname: BoundedVec<_, T::MaxSurnameLen> =
+				surname.try_into().map_err(|_| Error::<T>::SurnameTooLong)?;
+
+			// Update student fields
+			student.name = name;
+			student.surname = surname;
+			student.age = age;
+			student.gender = gender;
+
+			// Save updated student
+			Students::<T>::insert(student_id, student);
+
+			// Emit event
+			Self::deposit_event(Event::StudentUpdated { who, student_id });
 
 			Ok(())
 		}
