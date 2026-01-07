@@ -365,6 +365,49 @@ const XCMStudentVisualizer = () => {
     }
   };
 
+  const deleteCompanyStudent = async (studentId) => {
+    if (!apis.company || !alice || !palletName) {
+      alert('Not connected to blockchain');
+      return;
+    }
+
+    if (!window.confirm('Delete this student from Company parachain?')) {
+      return;
+    }
+
+    try {
+      console.log(`Deleting company student ID ${studentId}...`);
+
+      const unsub = await apis.company.tx[palletName]
+        .deleteAnyStudent(studentId)
+        .signAndSend(alice, ({ status, events }) => {
+          if (status.isInBlock) {
+            console.log(`Company delete included in block ${status.asInBlock}`);
+          } else if (status.isFinalized) {
+            console.log(`Company delete finalized at block ${status.asFinalized}`);
+
+            events.forEach(({ event }) => {
+              if (apis.company.events.system.ExtrinsicFailed.is(event)) {
+                console.error('Delete failed:', event.data.toString());
+              }
+            });
+
+            loadStudentsFromChains(
+              apis.university,
+              apis.company,
+              palletName
+            );
+
+            unsub();
+          }
+        });
+    } catch (err) {
+      console.error('Error deleting company student:', err);
+      alert(`Failed to delete student: ${err.message}`);
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -416,8 +459,8 @@ const XCMStudentVisualizer = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 to-indigo-100 px-[2vw] py-[2vh]">
+      <div className="w-full mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">
             XCM Student Transfer Visualizer
@@ -490,7 +533,7 @@ const XCMStudentVisualizer = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-[clamp(1rem,2vw,2rem)]">
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="flex items-center gap-3 mb-6">
               <GraduationCap className="w-8 h-8 text-blue-600" />
@@ -669,12 +712,24 @@ const XCMStudentVisualizer = () => {
                           Age: {student.age} | {student.gender}
                         </p>
                       </div>
+                      <div className="flex items-center gap-2">
+                      <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                        ID: {student.id}
+                      </span>
                       <span className="text-xs bg-green-600 text-white px-2 py-1 rounded flex items-center gap-1">
                         <GraduationCap className="w-3 h-3" />
                         Graduated
                       </span>
-                    </div>
+                      <button
+                      onClick={() => deleteCompanyStudent(student.id)}
+                      title="Delete student"
+                      className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-100 transition"
+                      >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
+                </div>
+              </div>
                 ))
               )}
             </div>

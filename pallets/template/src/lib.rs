@@ -119,6 +119,7 @@ pub mod pallet {
 		StudentTransferred { student_id: u32, destination: Location },
 		StudentGraduatedAndTransferred { who: T::AccountId, student_id: u32, destination: Location },
 		StudentUpdated { who: T::AccountId, student_id: u32 },
+		StudentDeletedByAdmin { student_id: u32 },
 	}
 
 
@@ -216,9 +217,12 @@ pub mod pallet {
 			let dest_para_id = T::GraduationDestinationPara::get();
 			let destination = Location::new(1, [Parachain(dest_para_id)]);
 
-			// Encode the receive_student call
+			// Encode the receive_student call WITH the owner
 			let call = <T as Config>::RuntimeCall::from(
-				Call::<T>::receive_student { student: student.clone() }
+				Call::<T>::receive_student { 
+					student: student.clone(),
+					new_owner: who.clone() // Pass the current owner
+				}
 			).encode();
 
 			// Build XCM message
@@ -242,7 +246,6 @@ pub mod pallet {
 			.map_err(|_| Error::<T>::XcmSendFailed)?;
 
 			// Remove student from this parachain after successful transfer
-			// Remove from owner's list
 			StudentsByOwner::<T>::try_mutate(&who, |owned_ids| {
 				if let Some(index) = owned_ids.iter().position(|id| *id == student_id) {
 					owned_ids.swap_remove(index);
@@ -252,10 +255,8 @@ pub mod pallet {
 				}
 			})?;
 
-			// Remove from Students storage
 			Students::<T>::remove(student_id);
 
-			// Emit event
 			Self::deposit_event(Event::StudentGraduatedAndTransferred { 
 				who, 
 				student_id, 
@@ -305,6 +306,7 @@ pub mod pallet {
 		pub fn receive_student(
 			origin: OriginFor<T>,
 			student: Student<T>,
+			new_owner: T::AccountId,
 		) -> DispatchResult {
 			// Ensure SovereignAccount from XCM
 			ensure_signed_or_root(origin)?;
@@ -314,6 +316,12 @@ pub mod pallet {
 
 			Students::<T>::insert(student_id, student);
 
+			// Add to new owner's list
+			StudentsByOwner::<T>::try_mutate(&new_owner, |list| {
+				list.try_push(student_id)
+					.map_err(|_| Error::<T>::MaxStudentsReached)
+			})?;
+
 			Self::deposit_event(Event::StudentReceived { student_id });
 
 			Ok(())
@@ -321,7 +329,7 @@ pub mod pallet {
 
 
 		// UPDATE STUDENT
-		#[pallet::call_index(4)] // Change receive_student to call_index(5)
+		#[pallet::call_index(4)]
 		#[pallet::weight(10_000)]
 		pub fn update_student(
 			origin: OriginFor<T>,
@@ -358,6 +366,37 @@ pub mod pallet {
 
 			// Emit event
 			Self::deposit_event(Event::StudentUpdated { who, student_id });
+
+			Ok(())
+		}
+
+
+		// DELETE ANY STUDENT (admin only - for received students)
+		#[pallet::call_index(6)]
+		#[pallet::weight(10_000)]
+		pub fn delete_any_student(
+			origin: OriginFor<T>,
+			student_id: u32,
+		) -> DispatchResult {
+			ensure_signed_or_root(origin)?;
+
+			// Ensure the student exists
+			ensure!(Students::<T>::contains_key(student_id), Error::<T>::StudentNotFound);
+
+			// Remove the student record
+			Students::<T>::remove(student_id);
+
+			// Try to remove from owner's list if they have an owner
+			// This iterates through all possible owners - not efficient but works for small datasets
+			for (owner, mut owned_ids) in StudentsByOwner::<T>::iter() {
+				if let Some(index) = owned_ids.iter().position(|id| *id == student_id) {
+					owned_ids.swap_remove(index);
+					StudentsByOwner::<T>::insert(&owner, owned_ids);
+					break;
+				}
+			}
+
+			Self::deposit_event(Event::StudentDeletedByAdmin { student_id });
 
 			Ok(())
 		}
