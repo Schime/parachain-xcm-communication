@@ -199,9 +199,3 @@ and extended with:
 Unlicensed / Public Domain.
 
 ---
-
-<div align="center">
-
-Built with ❤️ using Polkadot SDK, XCM & Zombienet
-
-</div>
