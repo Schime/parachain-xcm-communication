@@ -1,13 +1,13 @@
 <div align="center">
 
-# XCM Student Transfer  
+# Student transfer between parachains
 ### Cross-Parachain Communication Demo (Polkadot Local Network)
 
 <img height="70px" alt="Polkadot SDK Logo" src="https://github.com/paritytech/polkadot-sdk/raw/master/docs/images/Polkadot_Logo_Horizontal_Pink_White.png#gh-dark-mode-only"/>
 <img height="70px" alt="Polkadot SDK Logo" src="https://github.com/paritytech/polkadot-sdk/raw/master/docs/images/Polkadot_Logo_Horizontal_Pink_Black.png#gh-light-mode-only"/>
 
 **University Parachain (1000)** → **Company Parachain (2000)**  
-Powered by **XCM**, **HRMP**, **Zombienet**, and **Polkadot SDK**
+Technologies and frameworks used: **XCM**, **HRMP**, **Zombienet**, and **Polkadot SDK**
 
 </div>
 
